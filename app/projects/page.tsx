@@ -1,8 +1,20 @@
 import { getCurrentUser } from '@/lib/auth';
 import ProjectList from '@/components/projects/ProjectList';
-import { Project } from '@/lib/types';
 import { FiPlusCircle } from 'react-icons/fi';
 import Link from 'next/link';
+
+// Define Project interface to match ProjectList component
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  githubUrl: string;
+  demoUrl?: string;
+  isPublic: boolean;
+  status: string;
+  tags: string[];
+  createdAt: string;
+}
 
 // Example projects data
 const exampleProjects: Project[] = [
@@ -12,9 +24,9 @@ const exampleProjects: Project[] = [
     description: 'Full-featured online shopping platform using Next.js and Prisma',
     isPublic: true,
     githubUrl: 'https://github.com/user/ecommerce',
-    userId: '1',
-    createdAt: new Date('2023-01-15'),
-    updatedAt: new Date('2023-02-01'),
+    status: 'GELISTIRILIYOR',
+    tags: ['Next.js', 'Prisma', 'E-Commerce'],
+    createdAt: '2023-01-15T00:00:00Z'
   },
   {
     id: '2',
@@ -22,17 +34,19 @@ const exampleProjects: Project[] = [
     description: 'Personal portfolio website built with React and Tailwind CSS',
     isPublic: false,
     githubUrl: 'https://github.com/user/portfolio',
-    userId: '1',
-    createdAt: new Date('2023-03-10'),
+    status: 'YAYINDA',
+    tags: ['React', 'Tailwind'],
+    createdAt: '2023-03-10T00:00:00Z'
   },
   {
     id: '3',
     title: 'Task Manager',
     description: 'Task and project management application with team collaboration features',
     isPublic: true,
-    userId: '1',
-    createdAt: new Date('2023-04-20'),
-    updatedAt: new Date('2023-05-05'),
+    githubUrl: 'https://github.com/user/task-manager',
+    status: 'ARSIVDE',
+    tags: ['Task Management', 'Collaboration'],
+    createdAt: '2023-04-20T00:00:00Z'
   },
 ];
 

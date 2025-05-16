@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Project" ALTER COLUMN "rawTags" DROP DEFAULT,
+ALTER COLUMN "updatedAt" DROP DEFAULT;

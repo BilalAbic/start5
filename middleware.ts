@@ -6,11 +6,15 @@ const protectedPaths = [
   '/dashboard',
   '/admin',
   '/profile',
+  '/projects/new',
 ];
 
 // Paths that are accessible only for admins
 const adminPaths = [
   '/admin',
+  '/admin/users',
+  '/admin/projects',
+  '/admin/reports',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -42,8 +46,10 @@ export async function middleware(request: NextRequest) {
   
   // Check admin access
   if (isAdminPath && user.role !== 'ADMIN') {
-    // Redirect non-admin users to home page
-    return NextResponse.redirect(new URL('/', request.url));
+    // Redirect non-admin users to home page with a message
+    const homeUrl = new URL('/', request.url);
+    homeUrl.searchParams.set('error', 'admin_access_required');
+    return NextResponse.redirect(homeUrl);
   }
   
   return NextResponse.next();

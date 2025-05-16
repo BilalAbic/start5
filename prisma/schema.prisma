@@ -8,14 +8,49 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  profileImage  String?
+  role          Role     @default(USER)
+  createdAt     DateTime @default(now())
+  projects      Project[]
 }
 
 enum Role {
   USER
   ADMIN
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  githubUrl   String
+  demoUrl     String?
+  isPublic    Boolean       @default(false)
+  status      ProjectStatus @default(GELISTIRILIYOR)
+  tags        String[]
+  createdAt   DateTime      @default(now())
+  media       Media[]
+}
+
+enum ProjectStatus {
+  GELISTIRILIYOR
+  YAYINDA
+  ARSIVDE
+}
+
+model Media {
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url        String
+  publicId   String
+  altText    String?
+  createdAt  DateTime @default(now())
 } 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FiHome, FiFolder, FiPlusCircle, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiFolder, FiPlusCircle, FiLogOut, FiCompass } from 'react-icons/fi';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -18,14 +18,19 @@ export default function Sidebar() {
       icon: <FiHome className="w-5 h-5" />,
     },
     {
-      name: 'Projects',
+      name: 'Projelerim',
       href: '/projects',
       icon: <FiFolder className="w-5 h-5" />,
     },
     {
-      name: 'New Project',
+      name: 'Yeni Proje',
       href: '/projects/new',
       icon: <FiPlusCircle className="w-5 h-5" />,
+    },
+    {
+      name: 'Keşfet',
+      href: '/explore',
+      icon: <FiCompass className="w-5 h-5" />,
     },
   ];
 
@@ -67,7 +72,7 @@ export default function Sidebar() {
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
           >
             <FiLogOut className="w-5 h-5 mr-3" />
-            Logout
+            Çıkış
           </button>
         </div>
       </div>

@@ -5,9 +5,12 @@ export interface Project {
   description: string;
   isPublic: boolean;
   githubUrl?: string;
+  demoUrl?: string;
   userId: string;
   createdAt: Date;
   updatedAt?: Date;
+  status: string;
+  tags: string[];
 }
 
 // User type
