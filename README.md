@@ -57,7 +57,7 @@ Start5 was created to solve the challenge of showcasing small yet meaningful pro
 - Cloudinary account (for image storage)
 
 ### Environment Configuration
-Create a `.env.local` file in the root directory with the following variables:
+Create a `.env.local`, `.env` file in the root directory with the following variables:
 
 ```
 DATABASE_URL="postgresql://user:password@localhost:5432/start5?schema=public"
@@ -69,9 +69,6 @@ CLOUDINARY_CLOUD_NAME="your-cloud-name"
 CLOUDINARY_API_KEY="your-api-key"
 CLOUDINARY_API_SECRET="your-api-secret"
 
-# Email Service (optional)
-EMAIL_SERVER=smtp://username:password@smtp.example.com:587
-EMAIL_FROM=noreply@example.com
 ```
 
 ### Database Setup
@@ -151,7 +148,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For questions, support, or contributions, please reach out through:
 
-- GitHub Issues: [Create an issue](https://github.com/yourusername/start5/issues)
+- GitHub Issues: [Create an issue](https://github.com/BilalAbic/start5/issues)
 - Email: contact@start5.dev
 - Discord: [Join our server](https://discord.gg/start5)
 
