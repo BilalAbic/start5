@@ -2,10 +2,40 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FiHome, FiFolder, FiPlusCircle, FiLogOut, FiCompass } from 'react-icons/fi';
+import { FiHome, FiFolder, FiPlusCircle, FiLogOut, FiCompass, FiUser, FiSettings, FiAlertTriangle } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import NotificationIconSidebar from '../NotificationIconSidebar';
+
+interface User {
+  id: string;
+  userId: string;
+  email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  profileImage?: string;
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/auth/user');
+        const data = await response.json();
+        if (response.ok && data.user) {
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const isActive = (path: string) => {
     return pathname === path || pathname?.startsWith(path + '/');
@@ -31,6 +61,11 @@ export default function Sidebar() {
       name: 'Keşfet',
       href: '/explore',
       icon: <FiCompass className="w-5 h-5" />,
+    },
+    {
+      name: 'Rapor Sonuçlarım',
+      href: '/account/reports',
+      icon: <FiAlertTriangle className="w-5 h-5" />,
     },
   ];
 
@@ -67,13 +102,47 @@ export default function Sidebar() {
         </div>
 
         <div className="p-4 border-t border-gray-700">
-          <button
-            onClick={handleLogout}
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
-          >
-            <FiLogOut className="w-5 h-5 mr-3" />
-            Çıkış
-          </button>
+          <div className="flex flex-col space-y-2">
+            <Link
+              href="/account"
+              className="flex items-center group hover:bg-gray-700 rounded-lg p-2 transition-colors"
+            >
+              <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-600 flex-shrink-0">
+                {user?.profileImage ? (
+                  <Image
+                    src={user.profileImage}
+                    alt={`${user.firstName || 'User'}'s profile`}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <FiUser className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+              <span className="ml-2 text-sm font-medium text-white truncate">
+                {user?.username ? user.username : 
+                  (user?.firstName && user?.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user?.email?.split('@')[0] || 'Kullanıcı')}
+              </span>
+            </Link>
+            
+            {/* Notification Icon between profile and logout */}
+            <div className="hover:bg-gray-700 rounded-lg transition-colors">
+              <NotificationIconSidebar />
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors flex items-center"
+              title="Çıkış Yap"
+            >
+              <FiLogOut className="w-5 h-5 mr-2" />
+              <span className="text-sm">Çıkış Yap</span>
+            </button>
+          </div>
         </div>
       </div>
     </aside>

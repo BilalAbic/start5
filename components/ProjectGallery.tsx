@@ -1,8 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
-import ImageGallery from 'react-image-gallery';
-import 'react-image-gallery/styles/css/image-gallery.css';
 import { Media } from '@/types';
+import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { Carousel } from 'react-responsive-carousel';
 
 type ProjectGalleryProps = {
   media: Media[];
@@ -18,24 +18,27 @@ const ProjectGallery = ({ media }: ProjectGalleryProps) => {
     );
   }
 
-  // Format data for react-image-gallery
-  const images = media.map((item) => ({
-    original: item.url,
-    thumbnail: item.url,
-    originalAlt: item.altText || 'Project image',
-    thumbnailAlt: item.altText || 'Project thumbnail',
-  }));
-
   return (
     <div className="w-full">
-      <ImageGallery
-        items={images}
-        showPlayButton={false}
-        showFullscreenButton={true}
-        showThumbnails={true}
-        showNav={true}
-        showBullets={media.length > 1}
-      />
+      <Carousel
+        showArrows={true}
+        showThumbs={true}
+        showIndicators={media.length > 1}
+        infiniteLoop={true}
+        showStatus={false}
+        className="project-gallery"
+      >
+        {media.map((item) => (
+          <div key={item.id} className="relative h-80">
+            <Image
+              src={item.url}
+              alt={item.altText || 'Project image'}
+              fill
+              className="object-contain"
+            />
+          </div>
+        ))}
+      </Carousel>
     </div>
   );
 };

@@ -1,32 +1,99 @@
+import { Metadata, ResolvingMetadata } from 'next';
 import { getProject } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
-import { FiGithub, FiExternalLink, FiArrowLeft, FiLock, FiGlobe } from 'react-icons/fi';
+import { 
+  FiGithub, 
+  FiExternalLink, 
+  FiArrowLeft, 
+  FiLock, 
+  FiGlobe, 
+  FiEdit3, 
+  FiTrash2, 
+  FiShare2, 
+  FiFlag, 
+  FiPlus,
+  FiCalendar
+} from 'react-icons/fi';
 import Link from 'next/link';
-import ProjectGallery from '@/components/ProjectGallery';
+import Image from 'next/image';
+import ProjectGallery from '@/components/projects/ProjectGallery';
 import { Media } from '@/types';
+import DeleteProjectButton from '@/components/projects/DeleteProjectButton';
+import ShareButton from '@/components/projects/ShareButton';
+import ProjectStatusBadge from '@/components/projects/ProjectStatusBadge';
+import TagList from '@/components/projects/TagList';
+import ClientReportButton from '@/components/projects/ClientReportButton';
+import ProjectCommentsWrapper from '@/components/projects/ProjectCommentsWrapper';
 
-export default async function ProjectDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+// Generate metadata for SEO
+export async function generateMetadata(props: Props, parent: ResolvingMetadata): Promise<Metadata> {
+  const params = await props.params;
+  const projectId = params.id;
+
+  // Fetch project data
+  const project = await getProject(projectId);
+
+  // If project doesn't exist, return default metadata
+  if (!project) {
+    return {
+      title: 'Project Not Found',
+      description: 'The requested project could not be found.',
+    };
+  }
+
+  // Determine the featured image URL for og:image
+  const featuredImage = project.media && project.media.length > 0 
+    ? project.media[0].url 
+    : '/default-project-image.jpg';
+
+  // Return metadata for the project
+  return {
+    title: `${project.title} | Start5`,
+    description: project.description?.slice(0, 155) || 'View this project on Start5',
+    openGraph: {
+      title: project.title,
+      description: project.description?.slice(0, 155) || 'View this project on Start5',
+      images: [
+        {
+          url: featuredImage,
+          width: 1200,
+          height: 630,
+          alt: project.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: project.title,
+      description: project.description?.slice(0, 155) || 'View this project on Start5',
+      images: [featuredImage],
+    },
+  };
+}
+
+export default async function ProjectDetailPage(props: Props) {
+  const params = await props.params;
   const projectId = params.id;
   const currentUser = await getCurrentUser();
-  
+
   // Fetch the project
   const project = await getProject(projectId);
-  
+
   // If project doesn't exist, return 404
   if (!project) {
     notFound();
   }
-  
+
   // If project is private and user is not the owner, redirect to login
   if (!project.isPublic && (!currentUser || project.userId !== currentUser.userId)) {
     redirect('/login?message=This+project+is+private');
   }
-  
+
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -36,151 +103,183 @@ export default async function ProjectDetailPage({
       year: 'numeric',
     }).format(date);
   };
-  
-  // Get status badge component
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'GELISTIRILIYOR':
-        return (
-          <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
-            Geliştiriliyor
-          </span>
-        );
-      case 'YAYINDA':
-        return (
-          <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400">
-            Yayında
-          </span>
-        );
-      case 'ARSIVDE':
-        return (
-          <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400">
-            Arşivde
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-  
+
+  // Check if current user is the project owner
+  const isOwner = currentUser && project.userId === currentUser.userId;
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 text-white">
+      {/* Project Hero Section */}
+      <header className="relative bg-gray-800 border-b border-gray-700 overflow-hidden">
+        {project.media && project.media.length > 0 && (
+          <div className="absolute inset-0 opacity-10">
+            <Image 
+              src={project.media[0].url} 
+              alt={project.title} 
+              fill 
+              className="object-cover"
+              priority
+            />
+          </div>
+        )}
+        
+        <div className="container mx-auto px-4 py-8 relative z-10">
           <Link
             href="/explore"
-            className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4"
+            className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4 transition"
           >
-            <FiArrowLeft className="mr-2" /> Back to Explore
+            <FiArrowLeft className="mr-2" /> Keşfet'e Dön
           </Link>
           
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-white">{project.title}</h1>
-              <p className="text-gray-400 mt-1">
-                {formatDate(project.createdAt)}
-              </p>
-            </div>
-            
-            <div className="mt-3 sm:mt-0 flex items-center space-x-3">
-              {project.isPublic ? (
-                <div className="flex items-center text-green-400">
-                  <FiGlobe className="mr-1" /> Public
-                </div>
-              ) : (
-                <div className="flex items-center text-yellow-400">
-                  <FiLock className="mr-1" /> Private
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                {project.isPublic ? (
+                  <div className="flex items-center text-green-400 text-sm font-medium">
+                    <FiGlobe className="mr-1" /> Public
+                  </div>
+                ) : (
+                  <div className="flex items-center text-yellow-400 text-sm font-medium">
+                    <FiLock className="mr-1" /> Private
+                  </div>
+                )}
+                <ProjectStatusBadge status={project.status} />
+              </div>
+              
+              <h1 className="text-4xl font-bold text-white mb-2">{project.title}</h1>
+              
+              <div className="flex items-center text-gray-400 mb-4">
+                <FiCalendar className="mr-2" /> 
+                <time dateTime={project.createdAt}>{formatDate(project.createdAt)}</time>
+              </div>
+              
+              {/* Project Owner */}
+              {project.user && (
+                <div className="flex items-center mt-4">
+                  <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden mr-3">
+                    <Image 
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(project.user.username || project.user.email.split('@')[0])}&background=random`}
+                      alt={project.user.username || project.user.email}
+                      width={40}
+                      height={40}
+                    />
+                  </div>
+                  <Link href={`/u/${project.user.username || project.user.email.split('@')[0]}`} className="text-blue-400 hover:underline">
+                    {project.user.username || project.user.email.split('@')[0]}
+                  </Link>
                 </div>
               )}
-              {getStatusBadge(project.status)}
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3">
+              {project.githubUrl && (
+                <a
+                  href={project.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+                >
+                  <FiGithub className="mr-2" /> GitHub
+                </a>
+              )}
+              
+              {project.demoUrl && (
+                <a
+                  href={project.demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md transition-colors"
+                >
+                  <FiExternalLink className="mr-2" /> Demo
+                </a>
+              )}
+              
+              <ShareButton title={project.title} />
+              
+              {!isOwner && (
+                <div className="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors">
+                  <ClientReportButton projectId={project.id} className="p-0" />
+                </div>
+              )}
             </div>
           </div>
         </div>
       </header>
       
       <main className="container mx-auto px-4 py-8">
-        <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-          {/* Project Content */}
-          <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
             {/* Media Gallery */}
-            {project.media && project.media.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-4">Gallery</h2>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <ProjectGallery media={project.media as Media[]} />
+            {project.media && project.media.length > 0 ? (
+              <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 p-6">
+                <h2 className="text-xl font-semibold mb-4">Galeri</h2>
+                <ProjectGallery media={project.media as Media[]} />
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 p-6">
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                  <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                  <p className="text-lg">Bu projede henüz görsel yok</p>
+                  
+                  {isOwner && (
+                    <Link 
+                      href={`/projects/${project.id}/media/upload`}
+                      className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md transition-colors"
+                    >
+                      <FiPlus className="mr-2" /> Görsel Ekle
+                    </Link>
+                  )}
                 </div>
               </div>
             )}
             
             {/* Description */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">About this project</h2>
-              <p className="text-gray-300 whitespace-pre-line">
-                {project.description || 'No description provided'}
-              </p>
-            </div>
-            
-            {/* Tags */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Technologies</h2>
-              <div className="flex flex-wrap gap-2">
-                {project.tags.length > 0 ? (
-                  project.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="bg-blue-500/20 text-blue-200 px-3 py-1 rounded-md"
-                    >
-                      {tag}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-gray-400">No technologies listed</p>
-                )}
+            <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 p-6">
+              <h2 className="text-xl font-semibold mb-4">Proje Hakkında</h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-300 whitespace-pre-line">
+                  {project.description || 'Bu proje için açıklama eklenmemiş.'}
+                </p>
               </div>
             </div>
-            
-            {/* Links */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Links</h2>
-              <div className="flex flex-col sm:flex-row gap-3">
-                {project.githubUrl && (
-                  <a
-                    href={project.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors"
+
+            {/* Comment Section */}
+            <ProjectCommentsWrapper 
+              projectId={project.id} 
+              currentUser={currentUser}
+            />
+          </div>
+          
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Owner Controls */}
+            {isOwner && (
+              <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 p-6">
+                <h2 className="text-xl font-semibold mb-4">Proje Yönetimi</h2>
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href={`/projects/${project.id}/edit`}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md transition-colors w-full justify-center"
                   >
-                    <FiGithub className="mr-2" /> View on GitHub
-                  </a>
-                )}
-                
-                {project.demoUrl && (
-                  <a
-                    href={project.demoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                    <FiEdit3 className="mr-2" /> Düzenle
+                  </Link>
+                  
+                  <Link
+                    href={`/projects/${project.id}/media/upload`}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md transition-colors w-full justify-center"
                   >
-                    <FiExternalLink className="mr-2" /> Live Demo
-                  </a>
-                )}
+                    <FiPlus className="mr-2" /> Görsel Ekle
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
-        
-        {/* Owner Edit Controls */}
-        {currentUser && project.userId === currentUser.userId && (
-          <div className="mt-6 flex justify-end">
-            <Link
-              href={`/dashboard/projects/${project.id}/edit`}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-            >
-              Edit Project
-            </Link>
-          </div>
-        )}
       </main>
     </div>
   );
-} 
+}

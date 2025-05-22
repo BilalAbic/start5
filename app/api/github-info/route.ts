@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { headers as getHeaders } from 'next/headers';
 
 // In-memory cache to avoid rate limiting
 const cache = new Map<string, { data: any; timestamp: number }>();
@@ -82,9 +82,15 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    if (error.status === 403) {
+    if (error.status === 403 || error.status === 429) {
+      const resetDate = new Date(Number(error.headers?.get('x-ratelimit-reset') || 0) * 1000);
+      const resetTime = resetDate.toLocaleTimeString('tr-TR');
+      
       return NextResponse.json(
-        { error: 'GitHub API rate limit aşıldı. Lütfen daha sonra tekrar deneyin.' },
+        { 
+          error: `GitHub API rate limit aşıldı. Lütfen ${resetTime}'den sonra tekrar deneyin.${!process.env.GITHUB_TOKEN ? ' (İpucu: Rate limit sorununu çözmek için GITHUB_TOKEN ayarlayın)' : ''}`,
+          rateLimitError: true 
+        },
         { status: 429 }
       );
     }
@@ -98,7 +104,7 @@ export async function GET(request: NextRequest) {
 
 async function fetchRepoInfo(owner: string, repo: string) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-    headers: getGitHubHeaders(),
+    headers: await getGitHubHeaders(),
   });
 
   if (!response.ok) {
@@ -112,7 +118,7 @@ async function fetchRepoInfo(owner: string, repo: string) {
 
 async function fetchLanguages(owner: string, repo: string) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, {
-    headers: getGitHubHeaders(),
+    headers: await getGitHubHeaders(),
   });
 
   if (!response.ok) {
@@ -127,7 +133,7 @@ async function fetchLanguages(owner: string, repo: string) {
 async function fetchTopics(owner: string, repo: string) {
   const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/topics`, {
     headers: {
-      ...getGitHubHeaders(),
+      ...await getGitHubHeaders(),
       'Accept': 'application/vnd.github.mercy-preview+json'
     },
   });
@@ -142,13 +148,21 @@ async function fetchTopics(owner: string, repo: string) {
   return data.names || [];
 }
 
-function getGitHubHeaders() {
-  const headersList = headers();
+async function getGitHubHeaders() {
+  const headersList = await getHeaders();
   const userAgent = headersList.get('user-agent') || 'Start5-App';
+  const githubToken = process.env.GITHUB_TOKEN;
   
-  return {
+  const requestHeaders: Record<string, string> = {
     'User-Agent': userAgent,
-    // GitHub personal access token eklenebilir (opsiyonel)
-    // 'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+    'Accept': 'application/vnd.github.v3+json'
   };
+
+  if (githubToken) {
+    requestHeaders['Authorization'] = `Bearer ${githubToken}`;
+  } else {
+    console.warn('GITHUB_TOKEN is not set. Using unauthenticated requests with lower rate limits.');
+  }
+  
+  return requestHeaders;
 } 

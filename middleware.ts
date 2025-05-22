@@ -7,6 +7,7 @@ const protectedPaths = [
   '/admin',
   '/profile',
   '/projects/new',
+  '/account',
 ];
 
 // Paths that are accessible only for admins
@@ -17,8 +18,20 @@ const adminPaths = [
   '/admin/reports',
 ];
 
+// Public path prefixes that should always bypass auth checks
+const publicPathPrefixes = [
+  '/u/', // User profile pages
+  '/api/profile/', // User profile API
+];
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  
+  // Check if the path is a public path that should bypass auth
+  const isPublicPath = publicPathPrefixes.some(prefix => path.startsWith(prefix));
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
   
   // Check if the path requires authentication
   const isProtectedPath = protectedPaths.some(protectedPath => 

@@ -29,45 +29,22 @@ const UploadSchema = z.object({
 // POST /api/projects/[id]/media/upload - Upload media to Cloudinary and save to DB
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const projectId = params.id;
+    // Properly extract the ID from context params
+    const { id: projectId } = (await context.params);
 
     // Verify user is authenticated
     const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Yetkisiz erişim. Lütfen giriş yapın.' },
         { status: 401 }
       );
     }
 
-    // Check project ownership
-    const project = await typedPrisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    if (project.userId !== user.userId) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
-
-    // Get current media count for this project
-    const currentMediaCount = await typedPrisma.media.count({
-      where: { projectId },
-    });
-
-    // Parse request body ve validasyon
+    // Parse request body and validation first
     const body = await request.json();
     const parse = UploadSchema.safeParse(body);
     if (!parse.success) {
@@ -78,11 +55,74 @@ export async function POST(
     }
     const { images } = parse.data;
 
+    // Special handling for temporary uploads (when projectId is 'temp')
+    // This handles the case when user is uploading images before project creation
+    if (projectId === 'temp') {
+      const temporaryUploads = [];
+      
+      // Only upload to cloudinary but don't save to DB yet
+      for (const image of images) {
+        const { base64, altText } = image;
+        if (!base64) continue;
+        
+        try {
+          // Upload to Cloudinary with a generic temp folder
+          const { url, publicId } = await uploadImage(
+            base64,
+            `projects/temp/${user.userId}`
+          );
+          // Return the uploads without saving to DB
+          temporaryUploads.push({
+            url,
+            publicId,
+            altText: altText || null,
+            isTemporary: true
+          });
+        } catch (error) {
+          console.error('Error uploading temporary image:', error);
+        }
+      }
+      
+      if (temporaryUploads.length === 0) {
+        return NextResponse.json(
+          { error: 'Görsel yüklenirken bir hata oluştu' },
+          { status: 500 }
+        );
+      }
+      
+      return NextResponse.json(temporaryUploads, { status: 201 });
+    }
+
+    // Regular flow for existing projects
+    // Check project ownership
+    const project = await typedPrisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { error: 'Proje bulunamadı' },
+        { status: 404 }
+      );
+    }
+
+    if (project.userId !== user.userId) {
+      return NextResponse.json(
+        { error: 'Bu işlem için yetkiniz yok' },
+        { status: 403 }
+      );
+    }
+
+    // Get current media count for this project
+    const currentMediaCount = await typedPrisma.media.count({
+      where: { projectId },
+    });
+
     // Validate number of images
     if (images.length + currentMediaCount > MAX_FILES) {
       return NextResponse.json(
         { 
-          error: `Too many images. Maximum ${MAX_FILES} images allowed per project. You can upload ${MAX_FILES - currentMediaCount} more.` 
+          error: `Çok fazla görsel. Proje başına en fazla ${MAX_FILES} görsel yüklenebilir. ${MAX_FILES - currentMediaCount} görsel daha yükleyebilirsiniz.` 
         },
         { status: 400 }
       );
@@ -119,7 +159,7 @@ export async function POST(
 
     if (uploadedMedia.length === 0) {
       return NextResponse.json(
-        { error: 'Failed to upload any images' },
+        { error: 'Hiçbir görsel yüklenemedi' },
         { status: 500 }
       );
     }
@@ -128,7 +168,7 @@ export async function POST(
   } catch (error) {
     console.error('Error uploading media:', error);
     return NextResponse.json(
-      { error: 'Failed to upload media' },
+      { error: 'Medya yüklenirken bir hata oluştu' },
       { status: 500 }
     );
   }

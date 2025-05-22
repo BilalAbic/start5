@@ -6,6 +6,7 @@ declare global {
       project: any;
       media: any;
       user: any;
+      comment: any;
     }
   }
 }

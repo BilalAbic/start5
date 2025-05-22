@@ -8,35 +8,99 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  password      String
-  firstName     String?
-  lastName      String?
-  profileImage  String?
-  role          Role     @default(USER)
-  createdAt     DateTime @default(now())
-  projects      Project[]
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  username           String    @unique
+  password           String
+  role               Role      @default(USER)
+  status             String    @default("active")
+  firstName          String?
+  lastName           String?
+  profileImage       String?
+  bio                String?   @db.Text
+  website            String?
+  github             String?
+  twitter            String?
+  usernameLastChanged DateTime?
+  createdAt          DateTime  @default(now())
+  projects           Project[]
+  reports            Report[]  // Reports submitted by the user
+  reportedProjects   Report[]  @relation("ReportedProjects") // Projects reported against this user
+  notifications      Notification[]
+  comments           Comment[] // Comments made by the user
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  githubUrl   String
+  demoUrl     String?
+  isPublic    Boolean   @default(false)
+  status      ProjectStatus @default(GELISTIRILIYOR)
+  isPinned    Boolean   @default(false)
+  isFeatured  Boolean   @default(false)
+  tags        String[]  @map("rawTags")
+  version     String?
+  viewCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  media       Media[]
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports     Report[]  // Reports related to this project
+  comments    Comment[] // Comments on this project
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  projectId String
+  url       String
+  publicId  String
+  altText   String?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  projectId  String
+  reporterId String?  // User who submitted the report (optional for anonymous reports)
+  reason     ReportReason
+  details    String?
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reporter   User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  ownerId    String?  // The owner of the reported project
+  owner      User?    @relation("ReportedProjects", fields: [ownerId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // e.g. 'report', 'project', 'general'
+  message   String
+  link      String?  // Optional link to redirect when clicked
+  status    String   @default("unread") // 'unread', 'read'
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  projectId  String
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
 }
 
 enum Role {
   USER
   ADMIN
-}
-
-model Project {
-  id          String        @id @default(uuid())
-  userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  description String
-  githubUrl   String
-  demoUrl     String?
-  isPublic    Boolean       @default(false)
-  status      ProjectStatus @default(GELISTIRILIYOR)
-  tags        String[]
-  createdAt   DateTime      @default(now())
-  media       Media[]
 }
 
 enum ProjectStatus {
@@ -45,12 +109,16 @@ enum ProjectStatus {
   ARSIVDE
 }
 
-model Media {
-  id         String   @id @default(uuid())
-  projectId  String
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  url        String
-  publicId   String
-  altText    String?
-  createdAt  DateTime @default(now())
-} 
+enum ReportReason {
+  SPAM
+  INAPPROPRIATE
+  COPYRIGHT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  IGNORED
+  RESOLVED
+}

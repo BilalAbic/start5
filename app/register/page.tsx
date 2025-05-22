@@ -11,8 +11,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
+    username: '',
     password: '',
     passwordConfirm: '',
+    firstName: '',
+    lastName: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +66,36 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'Ad alanı gerekli';
+    } else if (formData.firstName.length < 2) {
+      newErrors.firstName = 'Ad en az 2 karakter olmalıdır';
+    } else if (formData.firstName.length > 50) {
+      newErrors.firstName = 'Ad en fazla 50 karakter olabilir';
+    } else if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/.test(formData.firstName)) {
+      newErrors.firstName = 'Ad sadece harf içerebilir';
+    }
+    
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Soyad alanı gerekli';
+    } else if (formData.lastName.length < 2) {
+      newErrors.lastName = 'Soyad en az 2 karakter olmalıdır';
+    } else if (formData.lastName.length > 50) {
+      newErrors.lastName = 'Soyad en fazla 50 karakter olabilir';
+    } else if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/.test(formData.lastName)) {
+      newErrors.lastName = 'Soyad sadece harf içerebilir';
+    }
+    
+    if (!formData.username.trim()) {
+      newErrors.username = 'Kullanıcı adı gerekli';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Kullanıcı adı en az 3 karakter olmalıdır';
+    } else if (formData.username.length > 16) {
+      newErrors.username = 'Kullanıcı adı en fazla 16 karakter olabilir';
+    } else if (!/^[a-z0-9_-]+$/.test(formData.username)) {
+      newErrors.username = 'Kullanıcı adı sadece küçük harf, rakam, tire ve alt çizgi içerebilir';
+    }
+    
     if (!formData.email.trim()) {
       newErrors.email = 'Email adresi gerekli';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -102,7 +135,10 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({
           email: formData.email,
+          username: formData.username,
           password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName
         }),
         credentials: 'include'
       });
@@ -153,6 +189,45 @@ export default function RegisterPage() {
       
       <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
         <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AuthInput
+              id="firstName"
+              type="text"
+              label="Ad"
+              value={formData.firstName}
+              onChange={handleChange}
+              placeholder="Adınız"
+              error={errors.firstName}
+              required
+              autoComplete="given-name"
+              autoFocus
+            />
+            
+            <AuthInput
+              id="lastName"
+              type="text"
+              label="Soyad"
+              value={formData.lastName}
+              onChange={handleChange}
+              placeholder="Soyadınız"
+              error={errors.lastName}
+              required
+              autoComplete="family-name"
+            />
+          </div>
+
+          <AuthInput
+            id="username"
+            type="text"
+            label="Kullanıcı Adı"
+            value={formData.username}
+            onChange={handleChange}
+            placeholder="kullanici_adi"
+            error={errors.username}
+            required
+            autoComplete="username"
+          />
+
           <AuthInput
             id="email"
             type="email"
@@ -163,7 +238,6 @@ export default function RegisterPage() {
             error={errors.email}
             required
             autoComplete="email"
-            autoFocus
           />
           
           <AuthInput

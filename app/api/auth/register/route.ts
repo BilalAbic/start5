@@ -15,9 +15,25 @@ const rateLimitMap = new Map<string, { count: number; lastTry: number }>();
 const RATE_LIMIT = 5;
 const WINDOW_MS = 5 * 60 * 1000;
 
+const usernameRegex = /^[a-z0-9_-]{3,16}$/;
+
 const RegisterSchema = z.object({
   email: z.string().email({ message: 'Geçerli bir email adresi giriniz.' }),
-  password: z.string().min(6, { message: 'Şifre en az 6 karakter olmalı.' })
+  username: z.string()
+    .min(3, { message: 'Kullanıcı adı en az 3 karakter olmalı.' })
+    .max(16, { message: 'Kullanıcı adı en fazla 16 karakter olabilir.' })
+    .regex(usernameRegex, { 
+      message: 'Kullanıcı adı sadece küçük harf, rakam, tire ve alt çizgi içerebilir.' 
+    }),
+  password: z.string().min(6, { message: 'Şifre en az 6 karakter olmalı.' }),
+  firstName: z.string()
+    .min(2, { message: 'Ad en az 2 karakter olmalı.' })
+    .max(50, { message: 'Ad en fazla 50 karakter olabilir.' })
+    .regex(/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/, { message: 'Ad sadece harf içerebilir.' }),
+  lastName: z.string()
+    .min(2, { message: 'Soyad en az 2 karakter olmalı.' })
+    .max(50, { message: 'Soyad en fazla 50 karakter olabilir.' })
+    .regex(/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/, { message: 'Soyad sadece harf içerebilir.' })
 });
 
 export async function POST(req: NextRequest) {
@@ -46,25 +62,44 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { email, password } = parse.data;
+    const { email, username, password, firstName, lastName } = parse.data;
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
+    // Email kontrolü
+    const existingUserByEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingUserByEmail) {
       return NextResponse.json(
         { error: 'Bu email ile zaten bir hesap var.' },
         { status: 409 }
       );
     }
 
+    // Username kontrolü
+    const existingUserByUsername = await prisma.user.findUnique({ where: { username } });
+    if (existingUserByUsername) {
+      return NextResponse.json(
+        { error: 'Bu kullanıcı adı zaten kullanılıyor.' },
+        { status: 409 }
+      );
+    }
+
     const hashedPassword = await hashPassword(password);
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword }
+      data: { 
+        email, 
+        username,
+        password: hashedPassword,
+        firstName,
+        lastName
+      }
     });
 
     const token = await createToken({
       userId: user.id,
       email: user.email,
+      username: user.username,
       role: user.role,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined
     });
 
     const response = NextResponse.json({
@@ -72,7 +107,10 @@ export async function POST(req: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         role: user.role,
+        firstName: user.firstName || undefined,
+        lastName: user.lastName || undefined
       }
     });
     response.cookies.set({

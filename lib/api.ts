@@ -16,6 +16,7 @@ type Project = {
   user?: {
     id: string;
     email: string;
+    username?: string;
   };
   userId?: string;
   media?: Media[];
@@ -24,9 +25,10 @@ type Project = {
 // Get all projects for the current user
 export async function getProjects(): Promise<Project[]> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/projects`, {
+    // Use absolute URL instead of relying on environment variables
+    const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://start5.vercel.app'}/api/projects`, {
       headers: {
-        Cookie: cookies().toString(),
+        Cookie: (await cookies()).toString(),
       },
       cache: 'no-store',
     });
@@ -43,15 +45,29 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 // Get all public projects
-export async function getPublicProjects(limit?: number): Promise<Project[]> {
+export async function getPublicProjects(limit?: number, page?: number, tag?: string, search?: string): Promise<{
+  projects: Project[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pageCount: number;
+  }
+}> {
   try {
-    let url = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public-projects`;
-    if (limit) {
-      url += `?limit=${limit}`;
-    }
+    // Build URL with query parameters
+    const baseUrl = `${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://start5.vercel.app'}/api/public-projects`;
+    const params = new URLSearchParams();
+    
+    if (limit) params.append('limit', limit.toString());
+    if (page) params.append('page', page.toString());
+    if (tag) params.append('tag', tag);
+    if (search) params.append('search', search);
+    
+    const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     
     const response = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 60 }, // Cache for 60 seconds with ISR
     });
 
     if (!response.ok) {
@@ -61,16 +77,25 @@ export async function getPublicProjects(limit?: number): Promise<Project[]> {
     return response.json();
   } catch (error) {
     console.error('Error fetching public projects:', error);
-    return [];
+    return {
+      projects: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        pageCount: 0
+      }
+    };
   }
 }
 
 // Get a specific project by ID
 export async function getProject(id: string): Promise<Project | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/projects/${id}`, {
+    // Use absolute URL instead of relying on environment variables
+    const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://start5.vercel.app'}/api/projects/${id}`, {
       headers: {
-        Cookie: cookies().toString(),
+        Cookie: (await cookies()).toString(),
       },
       cache: 'no-store',
     });
@@ -89,9 +114,10 @@ export async function getProject(id: string): Promise<Project | null> {
 // Get media for a project
 export async function getProjectMedia(projectId: string): Promise<Media[]> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/projects/${projectId}/media`, {
+    // Use absolute URL instead of relying on environment variables
+    const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://start5.vercel.app'}/api/projects/${projectId}/media`, {
       headers: {
-        Cookie: cookies().toString(),
+        Cookie: (await cookies()).toString(),
       },
       cache: 'no-store',
     });

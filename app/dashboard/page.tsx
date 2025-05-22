@@ -3,27 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { FiArrowRight, FiGrid, FiLock, FiGlobe, FiClock } from 'react-icons/fi';
 import Link from 'next/link';
 
-// Example projects data
-const exampleProjects = [
-  {
-    id: '1',
-    title: 'E-Commerce Website',
-    isPublic: true,
-    createdAt: new Date('2023-01-15'),
-  },
-  {
-    id: '2',
-    title: 'Portfolio App',
-    isPublic: false,
-    createdAt: new Date('2023-03-10'),
-  },
-  {
-    id: '3',
-    title: 'Task Manager',
-    isPublic: true,
-    createdAt: new Date('2023-04-20'),
-  },
-];
+// Force dynamic rendering to ensure we get updated project data
+export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const userPayload = await getCurrentUser();
@@ -33,19 +14,28 @@ export default async function DashboardPage() {
     where: { id: userPayload.userId }
   }) : null;
 
-  // In real app, these would be fetched from database
-  const totalProjects = exampleProjects.length;
-  const publicProjects = exampleProjects.filter(p => p.isPublic).length;
-  const privateProjects = exampleProjects.filter(p => !p.isPublic).length;
-  const recentProjects = exampleProjects
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 2);
+  // Fetch actual projects from database
+  const projects = userPayload?.userId ? await prisma.project.findMany({
+    where: { userId: userPayload.userId },
+    include: { media: true },
+    orderBy: { createdAt: 'desc' }
+  }) : [];
+
+  // Calculate dashboard stats from real data
+  const totalProjects = projects.length;
+  const publicProjects = projects.filter(p => p.isPublic).length;
+  const privateProjects = projects.filter(p => !p.isPublic).length;
+  const recentProjects = projects.slice(0, 2);
+  
+  // Get latest activity date
+  const latestActivityDate = projects.length > 0 ? 
+    new Date(Math.max(...projects.map(p => p.updatedAt.getTime()))) : null;
 
   return (
     <div className="space-y-6">
       <div className="bg-gray-800 rounded-lg p-6">
         <h1 className="text-2xl font-bold text-white mb-2">
-          Merhaba, {user?.email}!
+          Merhaba, {user?.username || user?.email || 'Kullanıcı'}!
         </h1>
         <p className="text-gray-300 mb-4">
           Start5 Dashboard'a hoş geldiniz. Buradan projelerinizi yönetebilirsiniz.
@@ -98,7 +88,9 @@ export default async function DashboardPage() {
           </div>
           <div>
             <p className="text-gray-400 text-sm">Son Aktivite</p>
-            <h3 className="text-white text-xl font-bold">{recentProjects[0] ? new Date(recentProjects[0].createdAt).toLocaleDateString() : '-'}</h3>
+            <h3 className="text-white text-xl font-bold">
+              {latestActivityDate ? latestActivityDate.toLocaleDateString('tr-TR') : '-'}
+            </h3>
           </div>
         </div>
       </div>
@@ -113,6 +105,11 @@ export default async function DashboardPage() {
             <Link href="/projects" className="block p-3 bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
               Mevcut Projeleri Yönet
             </Link>
+            {user && (
+              <Link href={`/u/${user.username}`} className="block p-3 bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
+                Profil Sayfanızı Görüntüleyin
+              </Link>
+            )}
           </div>
         </div>
         
@@ -121,23 +118,38 @@ export default async function DashboardPage() {
           {recentProjects.length > 0 ? (
             <div className="space-y-3">
               {recentProjects.map(project => (
-                <div key={project.id} className="p-3 bg-gray-700 rounded-md flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium text-white">{project.title}</h3>
-                    <p className="text-sm text-gray-400">{new Date(project.createdAt).toLocaleDateString()}</p>
+                <Link key={project.id} href={`/projects/${project.id}`}>
+                  <div className="p-3 bg-gray-700 rounded-md flex justify-between items-center hover:bg-gray-600 transition-colors">
+                    <div>
+                      <h3 className="font-medium text-white">{project.title}</h3>
+                      <p className="text-sm text-gray-400">{new Date(project.createdAt).toLocaleDateString('tr-TR')}</p>
+                    </div>
+                    <div>
+                      {project.isPublic ? (
+                        <FiGlobe className="text-green-500" />
+                      ) : (
+                        <FiLock className="text-amber-500" />
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    {project.isPublic ? (
-                      <FiGlobe className="text-green-500" />
-                    ) : (
-                      <FiLock className="text-amber-500" />
-                    )}
-                  </div>
-                </div>
+                </Link>
               ))}
+              {totalProjects > 2 && (
+                <Link href="/projects" className="block text-center text-sm text-blue-400 hover:text-blue-300 mt-2">
+                  Tüm projeleri görüntüle ({totalProjects})
+                </Link>
+              )}
             </div>
           ) : (
-            <p className="text-gray-400">Henüz proje bulunmuyor</p>
+            <div className="text-center py-6">
+              <p className="text-gray-400 mb-3">Henüz proje bulunmuyor</p>
+              <Link 
+                href="/projects/new"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                İlk Projenizi Oluşturun
+              </Link>
+            </div>
           )}
         </div>
       </div>

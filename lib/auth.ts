@@ -6,7 +6,10 @@ import { NextRequest } from 'next/server';
 export type JWTPayload = {
   userId: string;
   email: string;
+  username: string;
   role: string;
+  firstName?: string;
+  lastName?: string;
 };
 
 // Get JWT secret from environment variables

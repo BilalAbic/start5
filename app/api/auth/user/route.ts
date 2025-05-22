@@ -1,43 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 
+/**
+ * GET /api/auth/user
+ * 
+ * Giriş yapmış kullanıcının bilgilerini döndürür
+ * Giriş yapılmamışsa boş bir yanıt döner
+ */
 export async function GET(req: NextRequest) {
   try {
-    // Get user from JWT token
-    const payload = await getCurrentUser(req);
-    
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-    
-    // Get fresh user data from database
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+    const user = await getCurrentUser(req);
     
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return Response.json({
+        authenticated: false,
+        user: null
+      });
     }
     
-    return NextResponse.json({ user });
+    // Hassas bilgileri filtreleyerek yanıtta döndür
+    const safeUser = {
+      userId: user.userId,
+      id: user.userId,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      isAdmin: user.role === 'ADMIN',
+      authenticated: true
+    };
     
+    // Return user in a "user" property to match frontend expectations
+    return Response.json({
+      authenticated: true,
+      user: safeUser
+    });
   } catch (error) {
-    console.error('Get user error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get user information' },
+    console.error('Error in user endpoint:', error);
+    return Response.json(
+      { error: 'Kullanıcı bilgileri alınırken bir hata oluştu' },
       { status: 500 }
     );
   }

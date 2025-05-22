@@ -10,10 +10,8 @@ const typedPrisma = prisma as unknown as PrismaClient & {
 };
 
 // POST /api/projects/[id]/media - Add media to a project
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const projectId = params.id;
 
@@ -77,10 +75,8 @@ export async function POST(
 }
 
 // GET /api/projects/[id]/media - Get all media for a project
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const projectId = params.id;
 

@@ -10,6 +10,12 @@ import prisma from '@/lib/prisma';
 import { comparePassword } from '@/lib/password';
 import { createToken, setTokenCookie } from '@/lib/auth';
 import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
+
+// Type assertion for Prisma
+const typedPrisma = prisma as unknown as PrismaClient & {
+  user: any;
+};
 
 // Memory tabanlı rate limit (sadece örnek, production için uygun değildir)
 const rateLimitMap = new Map<string, { count: number; lastTry: number }>();
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
     const { email, password } = parse.data;
 
     // Kullanıcıyı bul
-    const user = await prisma.user.findUnique({
+    const user = await typedPrisma.user.findUnique({
       where: { email },
     });
     if (!user) {

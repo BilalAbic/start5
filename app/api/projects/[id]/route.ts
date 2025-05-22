@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getCurrentUser } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+// Type assertion for Prisma
+const typedPrisma = prisma as unknown as PrismaClient & {
+  project: any;
+};
 
 // GET /api/projects/[id] - Get a specific project
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const id = params.id;
 
     // Get the project
-    const project = await prisma.project.findUnique({
+    const project = await typedPrisma.project.findUnique({
       where: { id },
       include: {
         media: true,
@@ -21,6 +23,12 @@ export async function GET(
           select: {
             id: true,
             email: true,
+            username: true,
+          }
+        },
+        _count: {
+          select: {
+            comments: true
           }
         }
       },
@@ -58,10 +66,8 @@ export async function GET(
 }
 
 // PUT /api/projects/[id] - Update a project
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const id = params.id;
 
@@ -75,7 +81,7 @@ export async function PUT(
     }
 
     // Check project ownership
-    const existingProject = await prisma.project.findUnique({
+    const existingProject = await typedPrisma.project.findUnique({
       where: { id },
     });
 
@@ -98,7 +104,7 @@ export async function PUT(
     const { title, description, githubUrl, demoUrl, isPublic, tags, status } = body;
 
     // Update project
-    const updatedProject = await prisma.project.update({
+    const updatedProject = await typedPrisma.project.update({
       where: { id },
       data: {
         title: title || existingProject.title,
@@ -122,10 +128,8 @@ export async function PUT(
 }
 
 // DELETE /api/projects/[id] - Delete a project
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const id = params.id;
 
@@ -139,7 +143,7 @@ export async function DELETE(
     }
 
     // Check project ownership
-    const existingProject = await prisma.project.findUnique({
+    const existingProject = await typedPrisma.project.findUnique({
       where: { id },
     });
 
@@ -158,7 +162,7 @@ export async function DELETE(
     }
 
     // Delete project (will cascade delete all media as well)
-    await prisma.project.delete({
+    await typedPrisma.project.delete({
       where: { id },
     });
 

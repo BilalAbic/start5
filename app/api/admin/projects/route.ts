@@ -1,12 +1,18 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth, errorResponse } from '@/lib/api';
+import { PrismaClient, Project } from '@prisma/client';
+
+// Type assertion for Prisma
+const typedPrisma = prisma as unknown as PrismaClient & {
+  project: PrismaClient['project'];
+};
 
 // GET /api/admin/projects - Tüm projeleri listele (sadece admin)
 export const GET = withAuth(
-  async (req: NextRequest) => {
+  async (_req: NextRequest) => {
     try {
-      const projects = await prisma.project.findMany({
+      const projects = await typedPrisma.project.findMany({
         include: {
           user: {
             select: {
@@ -33,57 +39,66 @@ export const GET = withAuth(
 export const POST = withAuth(
   async (req: NextRequest) => {
     try {
-      const { projectId, featured } = await req.json();
+      const { projectId, featured, isPublic, isPinned } = await req.json();
       
       if (!projectId) {
         return errorResponse('Geçersiz proje ID', 400);
       }
       
-      // Burada featured alanı eklenecek (schema güncellenmeli)
-      const updatedProject = await prisma.project.update({
+      // Prepare data object based on which parameters were provided
+      const updateData: any = {};
+      
+      // Add isFeatured to update data if featured parameter is provided
+      if (featured !== undefined) {
+        updateData.isFeatured = featured === true;
+      }
+      
+      // Add isPublic to update data if isPublic parameter is provided
+      if (isPublic !== undefined) {
+        updateData.isPublic = isPublic === true;
+      }
+      
+      // Add isPinned to update data if isPinned parameter is provided
+      if (isPinned !== undefined) {
+        updateData.isPinned = isPinned === true;
+      }
+      
+      // Update the project with the prepared data
+      const updatedProject = await typedPrisma.project.update({
         where: { id: projectId },
-        data: { 
-          // featured: featured === true // Schema'ya eklenmeli
-          // Geçici çözüm:
-          isPublic: featured === true // Şimdilik isPublic alanını kullanıyoruz
-        },
+        data: updateData
       });
       
       return Response.json(updatedProject);
     } catch (error) {
-      console.error('Error updating project featured status:', error);
-      return errorResponse('Proje öne çıkarma durumu güncellenirken bir hata oluştu', 500);
+      console.error('Error updating project:', error);
+      return errorResponse('Proje güncellenirken bir hata oluştu', 500);
     }
   },
   { adminOnly: true } // Sadece admin kullanıcılar erişebilir
 );
 
-// DELETE /api/admin/projects/:id - Projeyi sil (sadece admin)
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  // Admin kontrolü
-  const adminCheck = await withAuth(async () => new Response(), { adminOnly: true })(req);
-  if (adminCheck.status !== 200) {
-    return adminCheck;
-  }
-  
-  try {
-    const projectId = params.id;
-    
-    if (!projectId) {
-      return errorResponse('Geçersiz proje ID', 400);
+// DELETE /api/admin/projects - Projeyi sil (sadece admin)
+export const DELETE = withAuth(
+  async (req: NextRequest) => {
+    try {
+      const { searchParams } = new URL(req.url);
+      const projectId = searchParams.get('id');
+      
+      if (!projectId) {
+        return errorResponse('Geçersiz proje ID', 400);
+      }
+      
+      // Projeyi sil
+      await typedPrisma.project.delete({
+        where: { id: projectId },
+      });
+      
+      return Response.json({ success: true, message: 'Proje başarıyla silindi' });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return errorResponse('Proje silinirken bir hata oluştu', 500);
     }
-    
-    // Projeyi sil
-    await prisma.project.delete({
-      where: { id: projectId },
-    });
-    
-    return Response.json({ success: true, message: 'Proje başarıyla silindi' });
-  } catch (error) {
-    console.error('Error deleting project:', error);
-    return errorResponse('Proje silinirken bir hata oluştu', 500);
-  }
-} 
+  },
+  { adminOnly: true } // Sadece admin kullanıcılar erişebilir
+); 

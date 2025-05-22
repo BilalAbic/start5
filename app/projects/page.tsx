@@ -2,6 +2,11 @@ import { getCurrentUser } from '@/lib/auth';
 import ProjectList from '@/components/projects/ProjectList';
 import { FiPlusCircle } from 'react-icons/fi';
 import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import prisma from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Define Project interface to match ProjectList component
 interface Project {
@@ -16,45 +21,38 @@ interface Project {
   createdAt: string;
 }
 
-// Example projects data
-const exampleProjects: Project[] = [
-  {
-    id: '1',
-    title: 'E-Commerce Website',
-    description: 'Full-featured online shopping platform using Next.js and Prisma',
-    isPublic: true,
-    githubUrl: 'https://github.com/user/ecommerce',
-    status: 'GELISTIRILIYOR',
-    tags: ['Next.js', 'Prisma', 'E-Commerce'],
-    createdAt: '2023-01-15T00:00:00Z'
-  },
-  {
-    id: '2',
-    title: 'Portfolio App',
-    description: 'Personal portfolio website built with React and Tailwind CSS',
-    isPublic: false,
-    githubUrl: 'https://github.com/user/portfolio',
-    status: 'YAYINDA',
-    tags: ['React', 'Tailwind'],
-    createdAt: '2023-03-10T00:00:00Z'
-  },
-  {
-    id: '3',
-    title: 'Task Manager',
-    description: 'Task and project management application with team collaboration features',
-    isPublic: true,
-    githubUrl: 'https://github.com/user/task-manager',
-    status: 'ARSIVDE',
-    tags: ['Task Management', 'Collaboration'],
-    createdAt: '2023-04-20T00:00:00Z'
-  },
-];
+// Transform DB projects to component-compatible projects
+function transformProjects(dbProjects: any[]): Project[] {
+  return dbProjects.map(p => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    githubUrl: p.githubUrl,
+    demoUrl: p.demoUrl || undefined,
+    isPublic: p.isPublic,
+    status: p.status,
+    tags: p.tags,
+    createdAt: p.createdAt.toISOString(),
+  }));
+}
 
 export default async function ProjectsPage() {
   const userPayload = await getCurrentUser();
   
-  // In a real app, you'd fetch projects from the database
-  const projects = exampleProjects;
+  // Redirect to login if not authenticated
+  if (!userPayload) {
+    redirect('/login?callbackUrl=/projects');
+  }
+  
+  // Fetch projects directly from the database
+  const dbProjects = await prisma.project.findMany({
+    where: { userId: userPayload.userId },
+    include: { media: true },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  // Transform to the expected format
+  const projects = transformProjects(dbProjects);
 
   return (
     <div className="space-y-6">

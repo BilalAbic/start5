@@ -73,7 +73,7 @@ const ProjectMediaManager = ({ projectId }: ProjectMediaManagerProps) => {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold mb-4">Upload Images</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Upload Images</h2>
         <MediaUploader 
           projectId={projectId} 
           onUploadComplete={handleUploadComplete}
@@ -81,10 +81,10 @@ const ProjectMediaManager = ({ projectId }: ProjectMediaManagerProps) => {
       </div>
       
       <div>
-        <h2 className="text-xl font-semibold mb-4">Project Images</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Project Images</h2>
         
         {mediaError && (
-          <div className="p-3 mb-4 flex items-center text-sm text-red-700 bg-red-100 rounded-md">
+          <div className="p-3 mb-4 flex items-center text-sm bg-red-900/20 text-red-400 border border-red-700 rounded-md">
             <FiAlertCircle className="mr-2 h-5 w-5" />
             {mediaError}
           </div>
@@ -93,16 +93,16 @@ const ProjectMediaManager = ({ projectId }: ProjectMediaManagerProps) => {
         {isLoading ? (
           <div className="text-center py-8">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-            <p className="mt-2 text-gray-600">Loading media...</p>
+            <p className="mt-2 text-gray-300">Loading media...</p>
           </div>
         ) : media.length === 0 ? (
-          <div className="text-center py-8 border border-dashed rounded-lg">
-            <p className="text-gray-500">No images uploaded yet</p>
+          <div className="text-center py-8 border border-dashed border-gray-700 rounded-lg">
+            <p className="text-gray-400">No images uploaded yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {media.map((item) => (
-              <div key={item.id} className="relative border rounded-md p-2 group">
+              <div key={item.id} className="relative border border-gray-700 rounded-md p-2 bg-gray-700 group">
                 <div className="h-40 relative">
                   <Image
                     src={item.url}
@@ -114,7 +114,7 @@ const ProjectMediaManager = ({ projectId }: ProjectMediaManagerProps) => {
                 </div>
                 
                 <div className="mt-2">
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-gray-300 truncate">
                     {item.altText || 'No description'}
                   </p>
                 </div>
@@ -124,12 +124,12 @@ const ProjectMediaManager = ({ projectId }: ProjectMediaManagerProps) => {
                   disabled={isDeleting[item.id]}
                   className={`absolute top-3 right-3 p-1.5 rounded-full 
                     ${isDeleting[item.id] 
-                      ? 'bg-gray-300 cursor-not-allowed' 
-                      : 'bg-white shadow-md opacity-0 group-hover:opacity-100 hover:bg-red-50'
+                      ? 'bg-gray-500 cursor-not-allowed' 
+                      : 'bg-gray-900 shadow-md opacity-0 group-hover:opacity-100 hover:bg-red-900'
                     } transition-opacity`}
                   type="button"
                 >
-                  <FiTrash2 className={`h-4 w-4 ${isDeleting[item.id] ? 'text-gray-500' : 'text-red-500'}`} />
+                  <FiTrash2 className={`h-4 w-4 ${isDeleting[item.id] ? 'text-gray-400' : 'text-red-400'}`} />
                 </button>
               </div>
             ))}

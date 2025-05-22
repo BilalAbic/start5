@@ -12,8 +12,9 @@ const typedPrisma = prisma as unknown as PrismaClient & {
 // DELETE /api/projects/[id]/media/[mediaId] - Delete media from a project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; mediaId: string } }
+  props: { params: Promise<{ id: string; mediaId: string }> }
 ) {
+  const params = await props.params;
   try {
     const { id: projectId, mediaId } = params;
 

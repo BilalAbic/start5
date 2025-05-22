@@ -101,7 +101,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
       <div className="bg-gray-800 rounded-lg p-6 text-center">
         <p className="text-gray-300 mb-4">Henüz hiç projeniz bulunmuyor.</p>
         <Link 
-          href="/dashboard/projects/new" 
+          href="/projects/new" 
           className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           İlk Projeni Oluştur
@@ -172,10 +172,10 @@ export default function ProjectList({ projects }: ProjectListProps) {
             
             <div className="flex justify-between border-t border-gray-700 pt-4">
               <div className="space-x-2">
-                <Link href={`/dashboard/projects/${project.id}`} className="text-gray-300 hover:text-white">
+                <Link href={`/projects/${project.id}`} className="text-gray-300 hover:text-white">
                   <FiEye />
                 </Link>
-                <Link href={`/dashboard/projects/${project.id}/edit`} className="text-gray-300 hover:text-white">
+                <Link href={`/projects/${project.id}/edit`} className="text-gray-300 hover:text-white">
                   <FiEdit2 />
                 </Link>
               </div>

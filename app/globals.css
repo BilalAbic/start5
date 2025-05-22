@@ -3,9 +3,8 @@
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
-}
-
-@theme inline {
+  
+  /* Theme variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -21,4 +20,25 @@ body {
 /* Smooth scrolling for anchor links */
 html {
   scroll-behavior: smooth;
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Optional overlay animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
